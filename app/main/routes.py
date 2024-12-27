@@ -17,7 +17,10 @@ from .. import cache, db
 @cache.cached(timeout=60)
 def index():
     users = User.query.all()
-    return render_template('index.html', users=users)
+    my_files = File.query.filter_by(owner_id=current_user.id).all()
+    access_files = current_user.access_files
+    return render_template('index.html', users=users, my_files=my_files,
+                           access_files=access_files)
 
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx'}
@@ -49,17 +52,36 @@ def upload():
                            extension=extension)
             db.session.add(file_db)
             db.session.flush()
-
             upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'],
                                        f"{file_db.uuid}.{extension}")
+
+            # добавляем access_users
+            access_usernames = request.form.get('access_users')
+            if access_usernames:
+                access_users = access_usernames.split('\n')
+                for username in access_users:
+                    user = User.query.filter_by(username=username).first()
+                    if user:
+                        file_db.access_users.append(user)
+                    else:
+                        flash(f"User {username} not found")
+
             file.save(upload_path)
             db.session.commit()
             print(f"Время загрузки: {time.perf_counter() - start}")
             print(f"Время обработки запроса: {time.perf_counter() - post_time}")
             flash('File uploaded successfully')
-            return render_template('file_info.html', file=file_db,
-                                   owner=current_user)
+            return redirect(url_for('main.info', uuid=file_db.uuid))
     return render_template('upload.html')
+
+
+@main_bp.route('/info/<uuid>')
+def info(uuid):
+    file_db = File.query.get(uuid)
+    if not file_db:
+        flash('File not found')
+    return render_template('file_info.html', file=file_db,
+                           owner=current_user)
 
 
 @main_bp.route('/download/<uuid>')
@@ -71,17 +93,4 @@ def download(uuid):
     uploads = os.path.join(current_app.root_path, '..',
                            current_app.config['UPLOAD_FOLDER'])
     filename = f"{uuid}.{file_db.extension}"
-
-    file_path = os.path.join(uploads, f"{uuid}.{file_db.extension}")
-    print(f"Attempting to fetch file from: {file_path}")
-    if not os.path.exists(file_path):
-        print("File does not exist at specified path")
-
-
     return send_from_directory(uploads, filename, as_attachment=True)
-
-
-@main_bp.route('/hi/<uuid>')
-def hi(uuid):
-    flash(f'Hi, {uuid}')
-    return render_template('base.html')

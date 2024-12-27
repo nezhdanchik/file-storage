@@ -4,7 +4,11 @@
 
 {% block content %}
     <form method=post enctype=multipart/form-data>
-      <input type=file name=file>
-      <input type=submit value=Upload>
+        <input type=file name=file>
+        <p>Access users: (enter one username on each line)</p>
+        <label>
+            <textarea rows="3" cols="20" name="access_users"></textarea>
+        </label>
+        <input type=submit value=Upload>
     </form>
 {% endblock %}

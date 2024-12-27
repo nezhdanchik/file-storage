@@ -11,5 +11,31 @@
         <li>{{ user.username }}</li>
     {% endfor %}
 </ul>
+<br>
+<h2>Your files</h2>
+{% if my_files %}
+    <ul>
+        {% for file in my_files %}
+            <li>
+                <a href="{{ url_for('main.info', uuid=file.uuid) }}">{{ file.filename }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No files</p>
+{% endif %}
+<br>
+<h2>You have access to these files</h2>
+{% if access_files %}
+    <ul>
+        {% for file in access_files %}
+            <li>
+                <a href="{{ url_for('main.info', uuid=file.uuid) }}">{{ file.filename }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No files</p>
+{% endif %}
 
 {% endblock %}
