@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}File {{ file.filename }}{% endblock %}
+
+{% block content %}
+    <h1>Information about {{ file.filename }} file</h1>
+    <p>Owner: {{ owner.username }}</p>
+    <p>Extension: {{ file.extension }}</p>
+    {% if file.access_users %}
+        <p>Access users:</p>
+        <ul>
+            {% for user in file.access_users %}
+                <li>{{ user.username }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No access users</p>
+    {% endif %}
+    <p>Download <a href="{{ url_for('main.download', uuid=file.uuid) }}">link</a></p>
+{% endblock %}
