@@ -19,15 +19,13 @@
 
 ## Установка и настройка
 
-
-### 1. Создание файла `.env`
 Создайте файл `.env` в корневой директории проекта и добавьте в него следующие переменные:
 ```
 CELERY_BROKER_HOST=localhost
 CELERY_BROKER_PORT=6379
 ```
 
-### 2. Запуск через Docker Compose
+Затем запустите с помощью docker-compose
 ```bash
 $ docker-compose up --build
 ```
