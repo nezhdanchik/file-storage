@@ -3,7 +3,7 @@
 {% block title %}File {{ file.filename }}{% endblock %}
 
 {% block content %}
-    <h1>Information about <i>{{ file.filename }}</i> file</h1>
+    <h1>Information about "<i>{{ file.filename }}</i>" file</h1>
     <p>Owner: {{ owner.username }}</p>
     <p>Extension: {{ file.extension }}</p>
     {% if file.access_users %}

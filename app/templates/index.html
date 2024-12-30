@@ -11,8 +11,8 @@
         <li>{{ user.username }}</li>
     {% endfor %}
 </ul>
-<br>
 <h2>Your files</h2>
+<p>You can <a href="{{ url_for('main.upload')}}">upload</a> new files</p>
 {% if my_files %}
     <ul>
         {% for file in my_files %}
@@ -24,7 +24,6 @@
 {% else %}
     <p>No files</p>
 {% endif %}
-<br>
 <h2>You have access to these files</h2>
 {% if access_files %}
     <ul>

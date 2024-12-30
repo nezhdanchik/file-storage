@@ -1,11 +1,15 @@
+from celery import Celery
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_caching import Cache
 
+from settings import get_celery_broker_url
+
 db = SQLAlchemy()
 login_manager = LoginManager()
 cache = Cache()
+celery_app = Celery('tasks', broker=get_celery_broker_url())
 
 
 def create_app():

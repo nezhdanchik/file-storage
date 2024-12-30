@@ -1,0 +1,45 @@
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    healthcheck:
+        test: ["CMD", "redis-cli", "ping"]
+        interval: 1s
+        timeout: 1s
+        retries: 3
+    restart: always
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    volumes:
+      - uploads:/code/uploads
+    depends_on:
+        redis:
+          condition: service_healthy
+    environment:
+      - CELERY_BROKER_HOST=redis
+      - CELERY_BROKER_PORT=6379
+    restart: always
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    ports:
+      - "8000:8000"
+    volumes:
+        - uploads:/code/uploads
+        - instance:/code/instance
+    depends_on:
+      redis:
+        condition: service_healthy
+      celery:
+        condition: service_started
+    environment:
+      - CELERY_BROKER_HOST=redis
+      - CELERY_BROKER_PORT=6379
+    restart: always
+volumes:
+  uploads:
+  instance:

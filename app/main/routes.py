@@ -1,20 +1,23 @@
+import bz2
 import os
+import tempfile
 import time
+from http.client import responses
+from io import BytesIO
 from time import perf_counter
 
 from flask import render_template, request, flash, redirect, url_for, \
-    current_app, send_from_directory
+    current_app, send_from_directory, send_file
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 
 from . import main_bp
 from ..models import User, File
-from .. import cache, db
+from .. import cache, db, celery_app
 
 
 @main_bp.route('/')
 @login_required
-@cache.cached(timeout=60)
 def index():
     users = User.query.all()
     my_files = File.query.filter_by(owner_id=current_user.id).all()
@@ -44,7 +47,6 @@ def upload():
             flash('No selected file')
             return redirect(request.url)
         if file and allowed_file(file.filename):
-            start = time.perf_counter()
             # filename = secure_filename(file.filename)
             filename = file.filename
             extension = filename.rsplit('.', 1)[1].lower()
@@ -65,12 +67,13 @@ def upload():
                         file_db.access_users.append(user)
                     else:
                         flash(f"User {username} not found")
-
-            file.save(upload_path)
+            start = time.perf_counter()
+            content = file.read()
+            celery_app.send_task('write_compressed_file', args=(content, upload_path))
             db.session.commit()
             print(f"Время загрузки: {time.perf_counter() - start}")
             print(f"Время обработки запроса: {time.perf_counter() - post_time}")
-            flash('File uploaded successfully')
+            flash(f'File uploaded successfully')
             return redirect(url_for('main.info', uuid=file_db.uuid))
     return render_template('upload.html')
 
@@ -91,6 +94,15 @@ def download(uuid):
         flash('File not found')
         return redirect(url_for('main.index'))
     uploads = os.path.join(current_app.root_path, '..',
-                           current_app.config['UPLOAD_FOLDER'])
-    filename = f"{uuid}.{file_db.extension}"
-    return send_from_directory(uploads, filename, as_attachment=True)
+                           current_app.config['UPLOAD_FOLDER'],
+                           f"{uuid}.{file_db.extension}")
+    print(f'{uploads=}')
+    with bz2.open(uploads, 'rb') as f:
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp.write(f.read())
+            tmp_path = tmp.name
+            print(f'{tmp_path=}')
+    response = send_file(tmp_path, as_attachment=True,
+                         download_name=file_db.filename)
+    celery_app.send_task('delete_file', args=(tmp_path,), countdown=60)
+    return response
